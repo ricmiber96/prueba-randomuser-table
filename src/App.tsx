@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SortBy, type User } from './types.d'
 import UsersList from './components/UsersList'
+import Spinner from './components/Spinner/Spinner'
+import ErrorComponent from './components/ErrorComponent/ErrorComponent'
 
 function App () {
   const [users, setUsers] = useState<User[]>([])
@@ -9,7 +11,9 @@ function App () {
   const [showColors, setShowColors] = useState(false)
   const [sorting, setSorting] = useState<SortBy>(SortBy.NONE)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
-  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const toogleColors = () => {
     setShowColors(!showColors)
@@ -34,14 +38,25 @@ function App () {
   }
 
   useEffect(() => {
-    fetch('https://randomuser.me/api/?results=100')
-      .then(async res => await res.json())
-      .then(res => {
-        setUsers(res.results)
-        originalUsers.current = res.results
+    setLoading(true)
+    setError(false)
+    fetch(`https://randomuser.me/api/?results=10&seed=ricmiber$page=${currentPage}`)
+      .then(async res => {
+        if (!res.ok) throw new Error('Error fetching random user')
+        return await res.json()
       })
-      .catch(err => { setError(err) })
-  }, [])
+      .then((res) => {
+        setUsers(prevUsers => {
+          const newUsers = prevUsers.concat(res.results)
+          originalUsers.current = newUsers
+          return newUsers
+        })
+      })
+      .catch(err => { setError(err.message) })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [currentPage])
 
   const filterUsersByCountry = useMemo(() => {
     return typeof filterCountry === 'string' && filterCountry.length > 0
@@ -86,7 +101,10 @@ function App () {
         <h5>Total users: {users.length}</h5>
       </header>
       <main>
-        <UsersList handleChangeSorting={handleChangeSorting} handleDeleted={handleDeleted} showColors={showColors} users={sortedUsers}></UsersList>
+        {loading && <Spinner />}
+        {error && <ErrorComponent message={error} />}
+        {users.length === 0 ? <p>No users found.</p> : <UsersList handleChangeSorting={handleChangeSorting} handleDeleted={handleDeleted} showColors={showColors} users={sortedUsers} />}
+        {!loading && !error && <button onClick={() => { setCurrentPage(currentPage + 1) }}>More users</button>}
       </main>
     </>
   )
