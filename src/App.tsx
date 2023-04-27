@@ -1,19 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SortBy, type User } from './types.d'
 import UsersList from './components/UsersList'
 import Spinner from './components/Spinner/Spinner'
 import ErrorComponent from './components/ErrorComponent/ErrorComponent'
+import { useIntersectionObserver } from 'usehooks-ts'
+import useGetUsers from './hooks/useGetUsers'
 
 function App () {
-  const [users, setUsers] = useState<User[]>([])
-  const originalUsers = useRef<User[]>([])
   const [showColors, setShowColors] = useState(false)
   const [sorting, setSorting] = useState<SortBy>(SortBy.NONE)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [page, setPage] = useState(1)
+  const { users, setUsers, originalUsers, loading, error, hasMore } = useGetUsers({ page })
+
+  // INFINITE SCROLL
+  const observer = useRef<IntersectionObserver | null>(null)
+  const lastElementRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (loading) return
+      if (observer.current != null) {
+        observer.current.disconnect()
+      }
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((prev) => prev + 1)
+        }
+      })
+      if (node != null) observer.current.observe(node)
+      console.log(page)
+    },
+    [loading, hasMore]
+  )
 
   const toogleColors = () => {
     setShowColors(!showColors)
@@ -36,27 +54,6 @@ function App () {
     setUsers(originalUsers.current)
     setSorting(SortBy.NONE)
   }
-
-  useEffect(() => {
-    setLoading(true)
-    setError(false)
-    fetch(`https://randomuser.me/api/?results=10&seed=ricmiber$page=${currentPage}`)
-      .then(async res => {
-        if (!res.ok) throw new Error('Error fetching random user')
-        return await res.json()
-      })
-      .then((res) => {
-        setUsers(prevUsers => {
-          const newUsers = prevUsers.concat(res.results)
-          originalUsers.current = newUsers
-          return newUsers
-        })
-      })
-      .catch(err => { setError(err.message) })
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [currentPage])
 
   const filterUsersByCountry = useMemo(() => {
     return typeof filterCountry === 'string' && filterCountry.length > 0
@@ -104,7 +101,8 @@ function App () {
         {loading && <Spinner />}
         {error && <ErrorComponent message={error} />}
         {users.length === 0 ? <p>No users found.</p> : <UsersList handleChangeSorting={handleChangeSorting} handleDeleted={handleDeleted} showColors={showColors} users={sortedUsers} />}
-        {!loading && !error && <button onClick={() => { setCurrentPage(currentPage + 1) }}>More users</button>}
+        {/* {!loading && !error && <button onClick={() => { setCurrentPage(currentPage + 1) }}>More users</button>} */}
+        <div ref={lastElementRef} style={{ width: '100%', height: '20px' }}></div>
       </main>
     </>
   )

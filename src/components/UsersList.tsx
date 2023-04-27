@@ -10,8 +10,6 @@ interface Props {
 }
 
 export const UsersList: React.FC<Props> = ({ handleChangeSorting, handleDeleted, showColors, users }) => {
-  console.log(showColors)
-
   return (
     <>
       <table width={'100%'}>
