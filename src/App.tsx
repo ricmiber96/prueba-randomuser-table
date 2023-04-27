@@ -1,18 +1,17 @@
-import { type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { SortBy, type User } from './types.d'
-import UsersList from './components/UsersList'
-import Spinner from './components/Spinner/Spinner'
 import ErrorComponent from './components/ErrorComponent/ErrorComponent'
-import { useIntersectionObserver } from 'usehooks-ts'
+import Spinner from './components/Spinner/Spinner'
+import UsersList from './components/UsersList'
 import useGetUsers from './hooks/useGetUsers'
+import { SortBy, type User } from './types.d'
 
 function App () {
   const [showColors, setShowColors] = useState(false)
   const [sorting, setSorting] = useState<SortBy>(SortBy.NONE)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
   const [page, setPage] = useState(1)
-  const { users, setUsers, originalUsers, loading, error, hasMore } = useGetUsers({ page })
+  const { users, setUsers, originalUsers, loading, error, hasMore } = useGetUsers(page)
 
   // INFINITE SCROLL
   const observer = useRef<IntersectionObserver | null>(null)

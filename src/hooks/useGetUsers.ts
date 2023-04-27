@@ -6,7 +6,7 @@ import { type User } from '../types'
 //   page: number
 // }
 
-export default function useGetUsers ({ page = 1 }) {
+export default function useGetUsers (page: number = 1) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [users, setUsers] = useState<User[]>([])
@@ -17,7 +17,7 @@ export default function useGetUsers ({ page = 1 }) {
     setLoading(true)
     setError(false)
 
-    fetch(`https://randomuser.me/api/?results=30&seed=ricmiber$page=${page}`)
+    fetch(`https://randomuser.me/api/?results=15&seed=ricmiber$page=${page}`)
       .then(async res => {
         if (!res.ok) throw new Error('Error fetching random user')
         return await res.json()
